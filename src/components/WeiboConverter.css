@@ -1,0 +1,238 @@
+.converter-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+  color: #1d3557;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+p {
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+}
+
+.input-section, .output-section {
+  margin-bottom: 1.5rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.options {
+  margin-bottom: 1.5rem;
+}
+
+.options .checkbox-label {
+  display: flex;
+  align-items: center;
+  font-weight: normal;
+  margin-bottom: 0.8rem;
+}
+
+.options input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+
+.chunk-size-control {
+  margin-top: 0.5rem;
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.platform-presets {
+  margin-bottom: 1rem;
+}
+
+.platform-presets label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.preset-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.preset-button {
+  padding: 0.4rem 0.75rem;
+  background-color: #e9ecef;
+  color: #495057;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preset-button:hover {
+  background-color: #ced4da;
+}
+
+.preset-button.selected {
+  background-color: #e3f2fd;
+  border-color: #457b9d;
+  color: #1d3557;
+  font-weight: 600;
+}
+
+.custom-limit {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.custom-limit span {
+  font-weight: 500;
+}
+
+.chunk-size-control input[type="number"] {
+  width: 5rem;
+  padding: 0.25rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+.chunk-size-control small {
+  display: block;
+  color: #6c757d;
+  font-style: italic;
+  margin-top: 0.3rem;
+}
+
+.marker-styles {
+  margin-top: 0.5rem;
+  margin-left: 1.5rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.marker-styles span {
+  margin-right: 0.8rem;
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+.marker-options {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.marker-option {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 1.2rem;
+  background-color: #e9ecef;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.marker-option:hover {
+  background-color: #ced4da;
+}
+
+.marker-option.selected {
+  border-color: #457b9d;
+  background-color: #e3f2fd;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.convert-button {
+  background-color: #457b9d;
+  color: white;
+  margin-bottom: 1.5rem;
+}
+
+.convert-button:hover {
+  background-color: #1d3557;
+}
+
+.copy-button {
+  background-color: #a8dadc;
+  color: #1d3557;
+  margin-top: 0.5rem;
+}
+
+.copy-button:hover {
+  background-color: #90c7c9;
+}
+
+.chunks-container {
+  margin-top: 1.5rem;
+}
+
+.chunks-container h3 {
+  color: #1d3557;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.chunk-item {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.chunk-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.chunk-number {
+  font-weight: 600;
+  color: #457b9d;
+}
+
+.chunk-length {
+  color: #6c757d;
+}
+
+.chunk-item textarea {
+  margin-bottom: 0.5rem;
+} 
