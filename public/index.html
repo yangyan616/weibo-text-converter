@@ -28,6 +28,29 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
+    <!-- Preload Chinese fonts to ensure they're ready for the book cover generator -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&family=Long+Cang&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;700&family=Zhi+Mang+Xing&family=Liu+Jian+Mao+Cao&display=swap" rel="stylesheet">
+    
+    <!-- Force font preloading by adding inline styles that use the fonts -->
+    <style>
+      /* This div won't be visible but helps ensure fonts are loaded */
+      .font-preloader {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .font-preloader-1 { font-family: 'ZCOOL KuaiLe', cursive, sans-serif; }
+      .font-preloader-2 { font-family: 'Ma Shan Zheng', cursive, sans-serif; }
+      .font-preloader-3 { font-family: 'Long Cang', cursive, sans-serif; }
+      .font-preloader-4 { font-family: 'ZCOOL QingKe HuangYou', cursive, sans-serif; }
+      .font-preloader-5 { font-family: 'ZCOOL XiaoWei', serif; }
+      .font-preloader-6 { font-family: 'Noto Serif SC', serif; }
+      .font-preloader-7 { font-family: 'Zhi Mang Xing', cursive, sans-serif; }
+      .font-preloader-8 { font-family: 'Liu Jian Mao Cao', cursive, sans-serif; }
+    </style>
+    
     <title>Weibo Text Converter</title>
   </head>
   <body>
@@ -43,5 +66,16 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
+    <!-- Invisible elements to help with font preloading -->
+    <div class="font-preloader">
+      <span class="font-preloader-1">预加载字体</span>
+      <span class="font-preloader-2">预加载字体</span>
+      <span class="font-preloader-3">预加载字体</span>
+      <span class="font-preloader-4">预加载字体</span>
+      <span class="font-preloader-5">预加载字体</span>
+      <span class="font-preloader-6">预加载字体</span>
+      <span class="font-preloader-7">预加载字体</span>
+      <span class="font-preloader-8">预加载字体</span>
+    </div>
   </body>
 </html>

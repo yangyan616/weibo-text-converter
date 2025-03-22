@@ -265,11 +265,25 @@ button {
 }
 
 .title-input {
-  flex-grow: 1;
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.title-input label {
+  margin-right: 10px;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+.title-input textarea {
+  flex: 1;
   padding: 8px;
-  font-size: 16px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  min-width: 200px;
 }
 
 .generate-cover-button {
@@ -315,27 +329,6 @@ button {
   background-color: #f9f9f9;
 }
 
-.title-input {
-  display: flex;
-  align-items: center;
-  margin-bottom: 15px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.title-input label {
-  margin-right: 10px;
-  font-weight: bold;
-}
-
-.title-input input {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  min-width: 200px;
-}
-
 .generate-button {
   background-color: #4caf50;
   color: white;
@@ -375,4 +368,57 @@ button {
 
 .download-button:hover {
   background-color: #0b7dda;
+}
+
+.covers-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+.cover-preview-item {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s;
+  border: 3px solid transparent;
+  border-radius: 5px;
+}
+
+.cover-preview-item:hover {
+  transform: scale(1.05);
+}
+
+.cover-preview-item.selected {
+  border-color: #2196f3;
+  transform: scale(1.05);
+}
+
+.cover-thumbnail {
+  height: 180px;
+  width: 120px;
+  object-fit: cover;
+  border-radius: 2px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.selected-cover-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.generating-message {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  margin: 20px 0;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
 } 
