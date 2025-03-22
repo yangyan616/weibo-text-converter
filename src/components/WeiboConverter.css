@@ -235,4 +235,14 @@ button {
 
 .chunk-item textarea {
   margin-bottom: 0.5rem;
+}
+
+.chunk-text {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  margin-bottom: 10px;
 } 

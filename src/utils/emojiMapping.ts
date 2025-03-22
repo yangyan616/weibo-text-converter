@@ -126,38 +126,65 @@ export const convertWeiboEmojis = (text: string): string => {
   return convertedText;
 };
 
+// Function to convert specific recky hashtags
+export const convertReckyHashtags = (text: string): string => {
+  // Match the exact pattern "#recky blah#" only
+  return text.replace(/#recky blah#/g, '#recky的文字');
+};
+
 // Function to convert Weibo hashtags from #xxxx# to #xxxx format
 export const convertWeiboHashtags = (text: string): string => {
-  // Match patterns like #xxxx# but not ##xxxx## (to avoid multiple conversions)
-  // Using negative lookahead to ensure we don't match ## at the beginning
-  const hashtagRegex = /(?<!#)(#[^#]+#)(?!#)/g;
-  
-  return text.replace(hashtagRegex, (match) => {
-    // Remove the last # character
-    return match.substring(0, match.length - 1);
-  });
+  // Match patterns like #xxxx# to convert to #xxxx
+  return text.replace(/#([^#\s]+)#/g, '#$1');
+};
+
+// Function to extract all hashtags from text
+export const extractHashtags = (text: string): string[] => {
+  // Extract hashtags using a simple regex
+  const hashtagRegex = /#[^#\s]+/g;
+  const matches = text.match(hashtagRegex) || [];
+  return Array.from(new Set(matches));
+};
+
+// Paragraph marker options
+export type MarkerStyle = '➤' | '🔹' | '🌸' | '✨' | '💠' | '🍀';
+
+// Function to add paragraph markers
+export const addParagraphMarkers = (text: string, markerStyle: MarkerStyle = '➤'): string => {
+  // Split text by newlines and add selected paragraph marker to each non-empty paragraph
+  return text
+    .split('\n')
+    .map(paragraph => paragraph.trim() ? `${markerStyle} ${paragraph}` : paragraph)
+    .join('\n');
 };
 
 // Function to split text into chunks for platforms with character limits
 export const splitTextIntoChunks = (text: string, maxChunkSize: number = 900): string[] => {
-  if (text.length <= maxChunkSize) {
-    return [text];
+  // Extract all hashtags from the text - these are already converted to #xxxx format
+  const hashtags = extractHashtags(text);
+  const hashtagString = hashtags.length > 0 ? '\n\n' + hashtags.join(' ') : '';
+  
+  if (text.length <= maxChunkSize - hashtagString.length) {
+    return [text + hashtagString];
   }
 
   const chunks: string[] = [];
   let remainingText = text;
 
   while (remainingText.length > 0) {
-    if (remainingText.length <= maxChunkSize) {
+    const availableSize = maxChunkSize - (hashtags.length > 0 ? hashtags.join(' ').length + 2 : 0);
+    
+    if (remainingText.length <= availableSize) {
+      // For the last chunk, don't add hashtags at all
       chunks.push(remainingText);
       break;
     }
 
-    // Find a good split point (preferably at paragraph end or sentence end)
-    let splitIndex = findSplitIndex(remainingText, maxChunkSize);
+    // Find a good split point
+    let splitIndex = findSplitIndex(remainingText, availableSize);
     
-    // Add the chunk
-    chunks.push(remainingText.substring(0, splitIndex).trim());
+    // Add the chunk with hashtags appended
+    chunks.push(remainingText.substring(0, splitIndex).trim() + hashtagString);
     
     // Update remaining text
     remainingText = remainingText.substring(splitIndex).trim();
@@ -194,16 +221,4 @@ const findSplitIndex = (text: string, maxLength: number): number => {
   
   // Last resort: just split at the max length
   return maxLength;
-};
-
-// Paragraph marker options
-export type MarkerStyle = '➤' | '🔹' | '🌸' | '✨' | '💠' | '🍀';
-
-// Function to add paragraph markers
-export const addParagraphMarkers = (text: string, markerStyle: MarkerStyle = '➤'): string => {
-  // Split text by newlines and add selected paragraph marker to each non-empty paragraph
-  return text
-    .split('\n')
-    .map(paragraph => paragraph.trim() ? `${markerStyle} ${paragraph}` : paragraph)
-    .join('\n');
 }; 

@@ -4,7 +4,8 @@ import {
   addParagraphMarkers, 
   MarkerStyle, 
   convertWeiboHashtags,
-  splitTextIntoChunks
+  splitTextIntoChunks,
+  convertReckyHashtags
 } from '../utils/emojiMapping';
 import './WeiboConverter.css';
 
@@ -24,37 +25,50 @@ const WeiboConverter: React.FC = () => {
     setInputText(e.target.value);
   };
 
-  const handleMaxChunkSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow empty value
+  const handleMarkerStyleChange = (style: MarkerStyle) => {
+    setMarkerStyle(style);
+  };
+
+  const handleChunkSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setChunkSizeInput(e.target.value);
-    
-    if (e.target.value === '') {
-      setMaxChunkSize(0);
-      return;
-    }
-    
     const value = parseInt(e.target.value);
-    if (!isNaN(value)) {
+    if (!isNaN(value) && value >= 0) {
       setMaxChunkSize(value);
     }
   };
 
   const handleConvert = () => {
-    let converted = convertWeiboEmojis(inputText);
+    // Apply the conversions in sequence
+    let convertedText = inputText;
     
-    // Always convert hashtags
-    converted = convertWeiboHashtags(converted);
-    
-    if (addParagraphMarks) {
-      converted = addParagraphMarkers(converted, markerStyle);
+    // Apply conversions if the text is not empty
+    if (convertedText.trim()) {
+      // Convert Weibo emojis to standard emojis
+      convertedText = convertWeiboEmojis(convertedText);
+      
+      // Convert recky hashtags
+      convertedText = convertReckyHashtags(convertedText);
+      
+      // Always convert hashtags format (this will change #xxxx# to #xxxx in-place)
+      convertedText = convertWeiboHashtags(convertedText);
+      
+      // Add paragraph markers if enabled
+      if (addParagraphMarks) {
+        convertedText = addParagraphMarkers(convertedText, markerStyle);
+      }
+      
+      // For non-split mode, we don't need to add hashtags at the end
+      // They're already converted in place by convertWeiboHashtags
     }
     
-    setOutputText(converted);
+    // Update the output text
+    setOutputText(convertedText);
     
-    if (splitText) {
+    // Split text into chunks if enabled and there's text to split
+    if (splitText && convertedText.trim()) {
       // Use at least 1 character limit if 0 is somehow set
       const effectiveLimit = maxChunkSize > 0 ? maxChunkSize : 1;
-      const chunks = splitTextIntoChunks(converted, effectiveLimit);
+      const chunks = splitTextIntoChunks(convertedText, effectiveLimit);
       setOutputChunks(chunks);
     } else {
       setOutputChunks([]);
@@ -104,7 +118,7 @@ const WeiboConverter: React.FC = () => {
               <button
                 key={style}
                 className={`marker-option ${markerStyle === style ? 'selected' : ''}`}
-                onClick={() => setMarkerStyle(style)}
+                onClick={() => handleMarkerStyleChange(style)}
               >
                 {style}
               </button>
@@ -130,7 +144,7 @@ const WeiboConverter: React.FC = () => {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={chunkSizeInput}
-                onChange={handleMaxChunkSizeChange}
+                onChange={handleChunkSizeChange}
               />
             </label>
             <small>(Recommended: 900 for Xiaohongshu's 1000 character limit)</small>
@@ -167,10 +181,11 @@ const WeiboConverter: React.FC = () => {
                 <span className="chunk-number">Chunk {index + 1}/{outputChunks.length}</span>
                 <span className="chunk-length">{chunk.length} characters</span>
               </div>
-              <textarea
-                value={chunk}
+              <textarea 
+                className="chunk-text" 
                 readOnly
-                rows={4}
+                rows={6}
+                value={chunk}
               />
               <button 
                 className="copy-button"
