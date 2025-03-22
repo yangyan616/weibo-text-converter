@@ -411,7 +411,6 @@ const WeiboConverter: React.FC = () => {
           
           // 3. Start with a reasonable font size based on text length and line count
           const lineCount = titleText.split('\n').length;
-          const charCount = titleText.length;
           
           // Initial guess based on available height and line count
           let fontSize = Math.min(200, textAreaHeight / (lineCount * 1.2));
@@ -459,7 +458,6 @@ const WeiboConverter: React.FC = () => {
         const totalTextHeight = lines.length * lineHeight;
         
         // Calculate exact position to center text inside frame
-        const frameWidth = width - (frameMargin * 2);
         const frameHeight = height - (frameMargin * 2);
         const textTop = frameMargin + innerMargin + (frameHeight - (innerMargin * 2) - totalTextHeight) / 2;
         
