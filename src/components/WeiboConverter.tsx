@@ -171,7 +171,7 @@ const WeiboConverter: React.FC = () => {
     ];
     
     // Use the first 5 fonts that successfully load
-    const selectedFonts = chineseFonts.slice(0, 5);
+    const selectedFonts = chineseFonts.slice(0, 4);
     
     // Generate all covers with different fonts
     generateMultipleCovers(selectedFonts);
@@ -204,17 +204,17 @@ const WeiboConverter: React.FC = () => {
         try {
           const fontName = font.split(',')[0].replace(/'/g, '');
           console.log(`Loading font: ${fontName}`);
-          await document.fonts.load(`bold 24px ${fontName}`);
+          await document.fonts.load(`normal 24px ${fontName}`);
           finalFontList.push(font);
-          if (finalFontList.length >= 5) break;
+          if (finalFontList.length >= 4) break;
         } catch (error) {
           console.warn(`Failed to load font: ${font}`, error);
         }
       }
       
-      // If we couldn't get 5 Chinese fonts, add system fonts to reach 5 total
+      // If we couldn't get 5 Chinese fonts, add system fonts to reach 4 total
       let systemFontIndex = 0;
-      while (finalFontList.length < 5 && systemFontIndex < systemFonts.length) {
+      while (finalFontList.length < 4 && systemFontIndex < systemFonts.length) {
         // Don't add duplicates
         if (!finalFontList.includes(systemFonts[systemFontIndex])) {
           finalFontList.push(systemFonts[systemFontIndex]);
@@ -419,7 +419,7 @@ const WeiboConverter: React.FC = () => {
           let fits = false;
           
           while (!fits && fontSize > 20) {
-            context.font = `bold ${fontSize}px ${chosenFont}`;
+            context.font = `normal ${fontSize}px ${chosenFont}`;
             
             // Check if text fits within available width and height
             const lines = drawWrappedText(titleText, textAreaWidth);
@@ -449,8 +449,8 @@ const WeiboConverter: React.FC = () => {
         // Get text size and layout information
         const { fontSize, frameMargin, innerMargin, lines } = calculateTextSize();
         
-        // Set final font for rendering
-        context.font = `bold ${fontSize}px ${chosenFont}`;
+        // Set final font for rendering - use normal instead of bold to reduce artifacts
+        context.font = `normal ${fontSize}px ${chosenFont}`;
         context.textAlign = 'center';
         
         // Calculate line height and total text dimensions
@@ -466,18 +466,19 @@ const WeiboConverter: React.FC = () => {
           // Position the line (accounting for text baseline)
           const y = textTop + (index * lineHeight) + (fontSize * 0.85);
           
-          // Add shadow for depth
-          context.shadowColor = 'rgba(0,0,0,0.5)';
-          context.shadowBlur = fontSize * 0.05;
-          context.shadowOffsetX = fontSize * 0.01;
-          context.shadowOffsetY = fontSize * 0.01;
+          // Explicitly reset all canvas drawing settings
+          context.globalAlpha = 1.0;
+          context.shadowColor = 'transparent';
+          context.shadowBlur = 0;
+          context.shadowOffsetX = 0;
+          context.shadowOffsetY = 0;
           
-          // Draw outline
-          context.strokeStyle = colors.darker;
-          context.lineWidth = fontSize * 0.03;
+          // Draw a simple single outline
+          context.strokeStyle = '#000000'; // Consistent black outline
+          context.lineWidth = 2; // Slightly thicker outline
           context.strokeText(line, width / 2, y);
           
-          // Draw main text
+          // Draw text with white fill
           context.fillStyle = '#FFFFFF';
           context.fillText(line, width / 2, y);
         });
@@ -528,7 +529,7 @@ const WeiboConverter: React.FC = () => {
           </button>
         </div>
         
-        {isGeneratingCover && <p className="generating-message">Generating 5 different cover designs...</p>}
+        {isGeneratingCover && <p className="generating-message">Generating 4 different cover designs...</p>}
         
         {bookCoverUrls.length > 0 && (
           <div className="covers-grid">
