@@ -86,6 +86,17 @@ const WeiboConverter: React.FC = () => {
     });
   };
 
+  // Add these handlers to edit output text
+  const handleOutputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setOutputText(e.target.value);
+  };
+
+  const handleChunkChange = (index: number, e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newChunks = [...outputChunks];
+    newChunks[index] = e.target.value;
+    setOutputChunks(newChunks);
+  };
+
   return (
     <div className="converter-container">
       <h2>Weibo Text Converter</h2>
@@ -162,8 +173,8 @@ const WeiboConverter: React.FC = () => {
           <textarea
             id="convertedText"
             value={outputText}
-            readOnly
-            rows={6}
+            onChange={handleOutputChange}
+            rows={15}
           />
           
           <button className="copy-button" onClick={() => handleCopy(outputText)}>
@@ -183,9 +194,9 @@ const WeiboConverter: React.FC = () => {
               </div>
               <textarea 
                 className="chunk-text" 
-                readOnly
-                rows={6}
+                rows={10}
                 value={chunk}
+                onChange={(e) => handleChunkChange(index, e)}
               />
               <button 
                 className="copy-button"
