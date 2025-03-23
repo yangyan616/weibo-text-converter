@@ -510,29 +510,29 @@ const WeiboConverter: React.FC = () => {
   return (
     <div className="converter-container">
       <div className="book-cover-section">
-        <h3>Generate Cover</h3>
         <div className="title-input">
-          <label htmlFor="titleInput">Title:</label>
-          <textarea
-            id="titleInput"
-            value={titleText}
-            onChange={handleTitleChange}
-            placeholder="Enter your title..."
-            rows={1}
-            style={{ 
-              resize: 'vertical',
-              minHeight: '40px',
-              fontFamily: 'inherit',
-              width: '100%'
-            }}
-          />
-          <button 
-            className="generate-button"
-            onClick={handleGenerateBookCover}
-            disabled={!titleText.trim() || isGeneratingCover}
-          >
-            {isGeneratingCover ? 'Generating...' : 'Generate Covers'}
-          </button>
+          <div style={{ display: 'flex', flex: 1, gap: '10px' }}>
+            <textarea
+              id="titleInput"
+              value={titleText}
+              onChange={handleTitleChange}
+              placeholder="Enter your title..."
+              rows={1}
+              style={{ 
+                resize: 'vertical',
+                minHeight: '38px',
+                fontFamily: 'inherit',
+                flex: 1
+              }}
+            />
+            <button 
+              className="generate-button"
+              onClick={handleGenerateBookCover}
+              disabled={!titleText.trim() || isGeneratingCover}
+            >
+              {isGeneratingCover ? 'Generating...' : 'Generate Covers'}
+            </button>
+          </div>
         </div>
         
         {isGeneratingCover && <p className="generating-message">Generating 4 different cover designs...</p>}
@@ -570,19 +570,20 @@ const WeiboConverter: React.FC = () => {
           </div>
         )}
         
-        {/* Hidden canvas for generating the cover */}
         <canvas ref={canvasRef} style={{ display: 'none' }} />
       </div>
       
       <div className="input-section">
-        <label htmlFor="weiboText">Input Weibo Text:</label>
-        <textarea
-          id="weiboText"
-          value={inputText}
-          onChange={handleInputChange}
-          placeholder="Paste your Weibo text here..."
-          rows={6}
-        />
+        <div className="input-textarea">
+          <label htmlFor="weiboText">Input Weibo Text:</label>
+          <textarea
+            id="weiboText"
+            value={inputText}
+            onChange={handleInputChange}
+            placeholder="Paste your Weibo text here..."
+            rows={6}
+          />
+        </div>
       </div>
       
       <div className="options">
