@@ -26,6 +26,7 @@ const WeiboConverter: React.FC = () => {
   const [bookCoverUrls, setBookCoverUrls] = useState<string[]>([]);
   const [isGeneratingCover, setIsGeneratingCover] = useState<boolean>(false);
   const [styleVariation, setStyleVariation] = useState<number>(0); // Add style variation counter
+  const [fontRotationIndex, setFontRotationIndex] = useState<number>(0); // Track font rotation
   const [selectedCoverIndex, setSelectedCoverIndex] = useState<number | null>(null);
   
   // Canvas ref for generating the book cover
@@ -154,6 +155,8 @@ const WeiboConverter: React.FC = () => {
     
     // Increment style variation to get a different look each time
     setStyleVariation(prev => prev + 1);
+    // Rotate to next set of fonts
+    setFontRotationIndex(prev => (prev + 1) % 2); // Toggle between 0 and 1 for first/second set
     setIsGeneratingCover(true);
     setBookCoverUrls([]);
     setSelectedCoverIndex(null);
@@ -170,8 +173,11 @@ const WeiboConverter: React.FC = () => {
       "'Liu Jian Mao Cao', cursive, sans-serif", // Handwriting
     ];
     
-    // Use the first 5 fonts that successfully load
-    const selectedFonts = chineseFonts.slice(0, 4);
+    // Select 4 fonts based on the current rotation index
+    // When fontRotationIndex is 0, use the first 4 fonts
+    // When fontRotationIndex is 1, use the last 4 fonts
+    const startIndex = fontRotationIndex * 4;
+    const selectedFonts = chineseFonts.slice(startIndex, startIndex + 4);
     
     // Generate all covers with different fonts
     generateMultipleCovers(selectedFonts);
@@ -206,13 +212,13 @@ const WeiboConverter: React.FC = () => {
           console.log(`Loading font: ${fontName}`);
           await document.fonts.load(`normal 24px ${fontName}`);
           finalFontList.push(font);
-          if (finalFontList.length >= 4) break;
+          // We want all 4 fonts in our selected set
         } catch (error) {
           console.warn(`Failed to load font: ${font}`, error);
         }
       }
       
-      // If we couldn't get 5 Chinese fonts, add system fonts to reach 4 total
+      // If some fonts failed to load, add system fonts to reach 4 total
       let systemFontIndex = 0;
       while (finalFontList.length < 4 && systemFontIndex < systemFonts.length) {
         // Don't add duplicates
