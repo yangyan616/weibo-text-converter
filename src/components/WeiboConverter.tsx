@@ -102,13 +102,45 @@ const WeiboConverter: React.FC = () => {
   };
 
   const handleCopy = (text: string, chunkIndex: number | null = null) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setShowCopied(true);
-      setCopiedChunkIndex(chunkIndex);
-      setTimeout(() => {
-        setShowCopied(false);
-        setCopiedChunkIndex(null);
-      }, 2000);
+    // Try to use the clipboard API with a fallback for mobile
+    const copyToClipboard = async (textToCopy: string) => {
+      try {
+        // Modern API - primary method
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(textToCopy);
+          return true;
+        }
+        
+        // Fallback 1: execCommand method (works on some mobile browsers)
+        const textArea = document.createElement('textarea');
+        textArea.value = textToCopy;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        const success = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return success;
+      } catch (err) {
+        console.error('Failed to copy text:', err);
+        return false;
+      }
+    };
+
+    copyToClipboard(text).then(success => {
+      if (success) {
+        setShowCopied(true);
+        setCopiedChunkIndex(chunkIndex);
+        setTimeout(() => {
+          setShowCopied(false);
+          setCopiedChunkIndex(null);
+        }, 2000);
+      } else {
+        alert('Copy failed. Please select and copy the text manually.');
+      }
     });
   };
 

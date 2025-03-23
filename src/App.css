@@ -7,13 +7,13 @@
 
 .App-header {
   background-color: #1d3557;
-  padding: 1rem 0;
+  padding: 0.5rem 0;
   color: white;
 }
 
 .App-header h1 {
   margin: 0;
-  font-size: 1.8rem;
+  font-size: 1.5rem;
 }
 
 main {
@@ -23,12 +23,12 @@ main {
 }
 
 footer {
-  padding: 1rem 0;
+  padding: 0.5rem 0;
   background-color: #457b9d;
   color: white;
 }
 
 footer p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
