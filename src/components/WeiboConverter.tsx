@@ -29,8 +29,13 @@ const WeiboConverter: React.FC = () => {
   const [fontRotationIndex, setFontRotationIndex] = useState<number>(0); // Track font rotation
   const [selectedCoverIndex, setSelectedCoverIndex] = useState<number | null>(null);
   
-  // Canvas ref for generating the book cover
+  // States for text-to-image feature
+  const [textImageUrls, setTextImageUrls] = useState<string[]>([]);
+  const [isGeneratingTextImages, setIsGeneratingTextImages] = useState<boolean>(false);
+  
+  // Canvas refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const textCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Add effect to preload fonts when component mounts
   useEffect(() => {
@@ -396,7 +401,7 @@ const WeiboConverter: React.FC = () => {
         context.stroke();
         
         // Draw title with a simpler, more reliable approach
-        const drawWrappedText = (text: string, maxWidth: number) => {
+        const drawWrappedText = (text: string, maxWidth: number, tempFontSize: number) => {
           // Split text by newlines first to respect user's line breaks
           const paragraphs = text.split('\n');
           const lines: string[] = [];
@@ -409,24 +414,142 @@ const WeiboConverter: React.FC = () => {
               return;
             }
             
-            // For non-Latin characters (like Chinese), treat each character as a potential breakpoint
-            const characters = Array.from(paragraph); // This properly handles multi-byte characters
+            // Handle word wrapping differently for English vs Chinese/Japanese/etc
+            // For English, we need to respect word boundaries
             let currentLine = '';
             
-            // Break the text into lines character by character if needed
-            for (let i = 0; i < characters.length; i++) {
-              const char = characters[i];
-              const testLine = currentLine + char;
-              const testWidth = context.measureText(testLine).width;
+            // First check if paragraph is in a mixed mode with both Chinese and English
+            const hasChinese = /[\u4e00-\u9fa5]/.test(paragraph);
+            const hasLatin = /[a-zA-Z0-9]/.test(paragraph);
+            const isMixedMode = hasChinese && hasLatin;
+            
+            if (isMixedMode) {
+              // For mixed content, we need to handle both Latin words and Chinese characters
+              // First segment text into chunks of consecutive Latin characters or non-Latin characters
+              const segments: {text: string, isLatin: boolean}[] = [];
+              let currentSegment = '';
+              let currentIsLatin = /[a-zA-Z0-9]/.test(paragraph[0] || '');
               
-              if (testWidth > maxWidth && currentLine) {
-                lines.push(currentLine);
-                currentLine = char;
-              } else {
-                currentLine = testLine;
+              Array.from(paragraph).forEach(char => {
+                const charIsLatin = /[a-zA-Z0-9]/.test(char);
+                
+                if (charIsLatin !== currentIsLatin) {
+                  // Change in character type, create a new segment
+                  segments.push({text: currentSegment, isLatin: currentIsLatin});
+                  currentSegment = char;
+                  currentIsLatin = charIsLatin;
+                } else {
+                  // Same character type, append to current segment
+                  currentSegment += char;
+                }
+              });
+              
+              // Add the last segment
+              if (currentSegment) {
+                segments.push({text: currentSegment, isLatin: currentIsLatin});
+              }
+              
+              // Now handle each segment with its appropriate wrapping rules
+              for (let i = 0; i < segments.length; i++) {
+                const segment = segments[i];
+                
+                if (segment.isLatin) {
+                  // Handle latin segment as a whole word - never add space between Chinese and English
+                  const testLine = currentLine + segment.text;
+                  context.font = `${tempFontSize}px Arial, sans-serif`;
+                  const testWidth = context.measureText(testLine).width;
+                  
+                  if (testWidth > maxWidth && currentLine) {
+                    lines.push(currentLine);
+                    currentLine = segment.text;
+                  } else {
+                    currentLine = testLine;
+                  }
+                } else {
+                  // Handle Chinese segment character by character
+                  const characters = Array.from(segment.text);
+                  
+                  for (let j = 0; j < characters.length; j++) {
+                    const char = characters[j];
+                    
+                    // Check if current character is Chinese punctuation
+                    const isChinesePunctuation = /[，。：；？！、（）【】「」『』''""〔〕［］｛｝《》〈〉]/.test(char);
+                    
+                    // Special case: If we're about to add punctuation but the line would be too long,
+                    // check if we can add it to the previous line
+                    const testLine = currentLine + char;
+                    context.font = `${tempFontSize}px Arial, sans-serif`;
+                    const testWidth = context.measureText(testLine).width;
+                    
+                    if (testWidth > maxWidth && currentLine && isChinesePunctuation) {
+                      // Add the punctuation to the previous line regardless of width
+                      // (we'll sacrifice the exact width limit to maintain proper punctuation flow)
+                      lines.push(currentLine + char);
+                      currentLine = '';
+                      continue;
+                    } else if (testWidth > maxWidth && currentLine) {
+                      // Normal wrapping for non-punctuation
+                      lines.push(currentLine);
+                      currentLine = char;
+                    } else {
+                      // No wrapping needed, just append
+                      currentLine = testLine;
+                    }
+                  }
+                }
+              }
+            } else if (hasLatin && !hasChinese) {
+              // English/Latin text - split by words
+              const words = paragraph.split(/\s+/);
+              
+              for (let i = 0; i < words.length; i++) {
+                const word = words[i];
+                const testLine = currentLine + (currentLine ? ' ' : '') + word;
+                
+                // Measure text width for wrapping
+                context.font = `${tempFontSize}px Arial, sans-serif`;
+                const testWidth = context.measureText(testLine).width;
+                
+                if (testWidth > maxWidth && currentLine) {
+                  lines.push(currentLine);
+                  currentLine = word;
+                } else {
+                  currentLine = testLine;
+                }
+              }
+            } else {
+              // For non-Latin characters (like Chinese), one character might already be a word
+              const characters = Array.from(paragraph); // Properly handle multi-byte characters
+              
+              for (let i = 0; i < characters.length; i++) {
+                const char = characters[i];
+                
+                // Check if current character is Chinese punctuation
+                const isChinesePunctuation = /[，。：；？！、（）【】「」『』''""〔〕［］｛｝《》〈〉]/.test(char);
+                
+                // Special case: If we're about to add punctuation but the line would be too long,
+                // check if we can add it to the previous line
+                const testLine = currentLine + char;
+                context.font = `${tempFontSize}px Arial, sans-serif`;
+                const testWidth = context.measureText(testLine).width;
+                
+                if (testWidth > maxWidth && currentLine && isChinesePunctuation) {
+                  // Add the punctuation to the previous line regardless of width
+                  // (we'll sacrifice the exact width limit to maintain proper punctuation flow)
+                  lines.push(currentLine + char);
+                  currentLine = '';
+                  continue;
+                } else if (testWidth > maxWidth && currentLine) {
+                  // Normal wrapping for non-punctuation
+                  lines.push(currentLine);
+                  currentLine = char;
+                } else {
+                  // No wrapping needed, just append
+                  currentLine = testLine;
+                }
               }
             }
-            
+
             if (currentLine) {
               lines.push(currentLine);
             }
@@ -455,12 +578,13 @@ const WeiboConverter: React.FC = () => {
           
           // 4. Iteratively adjust font size until text fits properly
           let fits = false;
+          let lines: string[] = [];
           
           while (!fits && fontSize > 20) {
             context.font = `normal ${fontSize}px ${chosenFont}`;
             
             // Check if text fits within available width and height
-            const lines = drawWrappedText(titleText, textAreaWidth);
+            lines = drawWrappedText(titleText, textAreaWidth, fontSize);
             const lineHeight = fontSize * 1.2;
             const totalTextHeight = lines.length * lineHeight;
             
@@ -480,7 +604,7 @@ const WeiboConverter: React.FC = () => {
             fontSize,
             frameMargin,
             innerMargin,
-            lines: drawWrappedText(titleText, textAreaWidth)
+            lines
           };
         };
         
@@ -537,6 +661,291 @@ const WeiboConverter: React.FC = () => {
 
     // Setup and start
     setupFonts();
+  };
+
+  // Function to generate text images
+  const handleGenerateTextImages = () => {
+    if (!inputText.trim()) return;
+    
+    setIsGeneratingTextImages(true);
+    setTextImageUrls([]);
+    
+    // Use setTimeout to let the UI update before starting the intensive operation
+    setTimeout(() => {
+      generateTextImages(inputText);
+    }, 100);
+  };
+
+  // Function to generate images from text
+  const generateTextImages = (text: string) => {
+    const canvas = textCanvasRef.current;
+    if (!canvas) return;
+    
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    
+    // Set canvas dimensions (3:2 aspect ratio with height being larger)
+    const width = 800;
+    const height = 1200;  // Height is 1.5x width to make a 3:2 ratio
+    canvas.width = width;
+    canvas.height = height;
+    
+    // Constants for text formatting
+    const margin = 70; // increased page margin in pixels
+    const fontSize = 40; // increased font size for better readability
+    const lineHeight = fontSize * 1.4; // line spacing
+    const pageNumberSize = 20; // size of page number
+    const maxLinesPerPage = Math.floor((height - (margin * 2) - pageNumberSize) / lineHeight) + 1;
+    const maxWidth = width - (margin * 2);
+    
+    // Function to split text into pages
+    const splitTextIntoPages = (textContent: string): string[] => {
+      // First split text into lines that fit within page width
+      const lines: string[] = [];
+      const paragraphs = textContent.split('\n');
+      
+      paragraphs.forEach(paragraph => {
+        // Skip empty paragraphs or handle them as line breaks
+        if (!paragraph.trim()) {
+          lines.push('');
+          return;
+        }
+        
+        // Handle word wrapping differently for English vs Chinese/Japanese/etc
+        // For English, we need to respect word boundaries
+        let currentLine = '';
+        
+        // First check if paragraph is in a mixed mode with both Chinese and English
+        const hasChinese = /[\u4e00-\u9fa5]/.test(paragraph);
+        const hasLatin = /[a-zA-Z0-9]/.test(paragraph);
+        const isMixedMode = hasChinese && hasLatin;
+        
+        if (isMixedMode) {
+          // For mixed content, we need to handle both Latin words and Chinese characters
+          // First segment text into chunks of consecutive Latin characters or non-Latin characters
+          const segments: {text: string, isLatin: boolean}[] = [];
+          let currentSegment = '';
+          let currentIsLatin = /[a-zA-Z0-9]/.test(paragraph[0] || '');
+          
+          Array.from(paragraph).forEach(char => {
+            const charIsLatin = /[a-zA-Z0-9]/.test(char);
+            
+            if (charIsLatin !== currentIsLatin) {
+              // Change in character type, create a new segment
+              segments.push({text: currentSegment, isLatin: currentIsLatin});
+              currentSegment = char;
+              currentIsLatin = charIsLatin;
+            } else {
+              // Same character type, append to current segment
+              currentSegment += char;
+            }
+          });
+          
+          // Add the last segment
+          if (currentSegment) {
+            segments.push({text: currentSegment, isLatin: currentIsLatin});
+          }
+          
+          // Now handle each segment with its appropriate wrapping rules
+          for (let i = 0; i < segments.length; i++) {
+            const segment = segments[i];
+            
+            if (segment.isLatin) {
+              // Handle latin segment as a whole word - never add space between Chinese and English
+              const testLine = currentLine + segment.text;
+              context.font = `${fontSize}px Arial, sans-serif`;
+              const testWidth = context.measureText(testLine).width;
+              
+              if (testWidth > maxWidth && currentLine) {
+                lines.push(currentLine);
+                currentLine = segment.text;
+              } else {
+                currentLine = testLine;
+              }
+            } else {
+              // Handle Chinese segment character by character
+              const characters = Array.from(segment.text);
+              
+              for (let j = 0; j < characters.length; j++) {
+                const char = characters[j];
+                
+                // Check if current character is Chinese punctuation
+                const isChinesePunctuation = /[，。：；？！、（）【】「」『』''""〔〕［］｛｝《》〈〉]/.test(char);
+                
+                // Special case: If we're about to add punctuation but the line would be too long,
+                // check if we can add it to the previous line
+                const testLine = currentLine + char;
+                context.font = `${fontSize}px Arial, sans-serif`;
+                const testWidth = context.measureText(testLine).width;
+                
+                if (testWidth > maxWidth && currentLine && isChinesePunctuation) {
+                  // Add the punctuation to the previous line regardless of width
+                  // (we'll sacrifice the exact width limit to maintain proper punctuation flow)
+                  lines.push(currentLine + char);
+                  currentLine = '';
+                  continue;
+                } else if (testWidth > maxWidth && currentLine) {
+                  // Normal wrapping for non-punctuation
+                  lines.push(currentLine);
+                  currentLine = char;
+                } else {
+                  // No wrapping needed, just append
+                  currentLine = testLine;
+                }
+              }
+            }
+          }
+        } else if (hasLatin && !hasChinese) { // This replaces isMainlyLatin
+          // English/Latin text - split by words
+          const words = paragraph.split(/\s+/);
+          
+          for (let i = 0; i < words.length; i++) {
+            const word = words[i];
+            const testLine = currentLine + (currentLine ? ' ' : '') + word;
+            
+            // Measure text width for wrapping
+            context.font = `${fontSize}px Arial, sans-serif`;
+            const testWidth = context.measureText(testLine).width;
+            
+            if (testWidth > maxWidth && currentLine) {
+              lines.push(currentLine);
+              currentLine = word;
+            } else {
+              currentLine = testLine;
+            }
+          }
+        } else {
+          // For non-Latin characters (like Chinese), one character might already be a word
+          const characters = Array.from(paragraph); // Properly handle multi-byte characters
+          
+          for (let i = 0; i < characters.length; i++) {
+            const char = characters[i];
+            
+            // Check if current character is Chinese punctuation
+            const isChinesePunctuation = /[，。：；？！、（）【】「」『』''""〔〕［］｛｝《》〈〉]/.test(char);
+            
+            // Special case: If we're about to add punctuation but the line would be too long,
+            // check if we can add it to the previous line
+            const testLine = currentLine + char;
+            context.font = `${fontSize}px Arial, sans-serif`;
+            const testWidth = context.measureText(testLine).width;
+            
+            if (testWidth > maxWidth && currentLine && isChinesePunctuation) {
+              // Add the punctuation to the previous line regardless of width
+              // (we'll sacrifice the exact width limit to maintain proper punctuation flow)
+              lines.push(currentLine + char);
+              currentLine = '';
+              continue;
+            } else if (testWidth > maxWidth && currentLine) {
+              // Normal wrapping for non-punctuation
+              lines.push(currentLine);
+              currentLine = char;
+            } else {
+              // No wrapping needed, just append
+              currentLine = testLine;
+            }
+          }
+        }
+        
+        if (currentLine) {
+          lines.push(currentLine);
+        }
+      });
+      
+      // Group lines into pages
+      const pages: string[] = [];
+      let currentPage: string[] = [];
+      
+      lines.forEach(line => {
+        if (currentPage.length >= maxLinesPerPage) {
+          pages.push(currentPage.join('\n'));
+          currentPage = [line];
+        } else {
+          currentPage.push(line);
+        }
+      });
+      
+      // Add the last page if it has content
+      if (currentPage.length > 0) {
+        pages.push(currentPage.join('\n'));
+      }
+      
+      return pages;
+    };
+    
+    // Split text into pages
+    const pages = splitTextIntoPages(text);
+    const imageUrls: string[] = [];
+    
+    // Function to render a single page
+    const renderPage = (pageContent: string, pageNumber: number): string => {
+      // Clear canvas
+      context.fillStyle = '#f8f8f8'; // very light background
+      context.fillRect(0, 0, width, height);
+      
+      // Draw a subtle border
+      context.strokeStyle = '#e0e0e0';
+      context.lineWidth = 2;
+      context.strokeRect(margin/2, margin/2, width - margin, height - margin);
+      
+      // Set text properties
+      context.font = `${fontSize}px Arial, sans-serif`;
+      context.fillStyle = '#333333'; // dark text color
+      context.textBaseline = 'top';
+      
+      // Draw text lines
+      const lines = pageContent.split('\n');
+      lines.forEach((line, lineIndex) => {
+        const y = margin + (lineIndex * lineHeight);
+        context.fillText(line, margin, y);
+      });
+      
+      // Draw page number (just the number, no "Page" text)
+      context.font = `${pageNumberSize}px Arial, sans-serif`;
+      context.fillStyle = '#888888'; // lighter color for page number
+      context.fillText(`${pageNumber + 1}`, 15, height - 30);
+      
+      // Convert canvas to image URL with better quality
+      return canvas.toDataURL('image/jpeg', 0.95);
+    };
+    
+    // Render each page and collect image URLs
+    pages.forEach((pageContent, index) => {
+      const imageUrl = renderPage(pageContent, index);
+      imageUrls.push(imageUrl);
+    });
+    
+    // Update state with generated images
+    setTextImageUrls(imageUrls);
+    setIsGeneratingTextImages(false);
+  };
+  
+  // Function to download a text image
+  const downloadTextImage = (imageUrl: string, pageIndex: number) => {
+    const a = document.createElement('a');
+    a.href = imageUrl;
+    a.download = `text-page-${pageIndex + 1}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  // Function to download all text images as a zip
+  const downloadAllTextImages = () => {
+    if (textImageUrls.length === 0) return;
+    
+    // For a single image, just download it directly
+    if (textImageUrls.length === 1) {
+      downloadTextImage(textImageUrls[0], 0);
+      return;
+    }
+    
+    // For multiple images, trigger downloads with a small delay between each
+    textImageUrls.forEach((url, index) => {
+      setTimeout(() => {
+        downloadTextImage(url, index);
+      }, index * 300); // 300ms delay between downloads
+    });
   };
 
   return (
@@ -668,7 +1077,11 @@ const WeiboConverter: React.FC = () => {
         )}
       </div>
       
-      <button className="convert-button" onClick={handleConvert}>
+      <button 
+        className="convert-button" 
+        onClick={handleConvert}
+        disabled={!inputText.trim()}
+      >
         Convert
       </button>
       
@@ -713,6 +1126,58 @@ const WeiboConverter: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* New Text-to-Image Feature */}
+      <div className="text-to-image-section">
+        <h3>Convert Text to Images</h3>
+        <p className="feature-description">
+          Convert your text into readable images with page numbers
+        </p>
+        
+        <div className="text-image-controls">
+          <button 
+            className="generate-images-button"
+            onClick={handleGenerateTextImages}
+            disabled={!inputText.trim() || isGeneratingTextImages}
+          >
+            {isGeneratingTextImages ? 'Generating...' : 'Generate Text Images'}
+          </button>
+        </div>
+        
+        {textImageUrls.length > 0 && (
+          <div className="text-images-section">
+            <div className="download-all-container">
+              <button 
+                className="download-all-button"
+                onClick={downloadAllTextImages}
+              >
+                Download All Images ({textImageUrls.length})
+              </button>
+            </div>
+            
+            <div className="text-images-grid">
+              {textImageUrls.map((url, index) => (
+                <div key={index} className="text-image-item">
+                  <img 
+                    src={url} 
+                    alt={`Text page ${index + 1}`} 
+                    className="text-image-thumbnail"
+                  />
+                  <button 
+                    className="download-button"
+                    onClick={() => downloadTextImage(url, index)}
+                  >
+                    Download Page {index + 1}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Hidden canvas for text-to-image generation */}
+        <canvas ref={textCanvasRef} style={{ display: 'none' }} />
+      </div>
     </div>
   );
 };
