@@ -473,7 +473,7 @@ const WeiboConverter: React.FC = () => {
                     const char = characters[j];
                     
                     // Check if current character is Chinese punctuation
-                    const isChinesePunctuation = /[，。：；？！、（）【】「」『』''""〔〕［］｛｝《》〈〉]/.test(char);
+                    const isChinesePunctuation = /[，。：；？！、）】」』'"〕］｝》〉]/.test(char);
                     
                     // Special case: If we're about to add punctuation but the line would be too long,
                     // check if we can add it to the previous line
@@ -525,7 +525,7 @@ const WeiboConverter: React.FC = () => {
                 const char = characters[i];
                 
                 // Check if current character is Chinese punctuation
-                const isChinesePunctuation = /[，。：；？！、（）【】「」『』''""〔〕［］｛｝《》〈〉]/.test(char);
+                const isChinesePunctuation = /[，。：；？！、）】」』'"〕］｝》〉]/.test(char);
                 
                 // Special case: If we're about to add punctuation but the line would be too long,
                 // check if we can add it to the previous line
@@ -770,7 +770,7 @@ const WeiboConverter: React.FC = () => {
                 const char = characters[j];
                 
                 // Check if current character is Chinese punctuation
-                const isChinesePunctuation = /[，。：；？！、（）【】「」『』''""〔〕［］｛｝《》〈〉]/.test(char);
+                const isChinesePunctuation = /[，。：；？！、）】」』'"〕］｝》〉]/.test(char);
                 
                 // Special case: If we're about to add punctuation but the line would be too long,
                 // check if we can add it to the previous line
@@ -822,7 +822,7 @@ const WeiboConverter: React.FC = () => {
             const char = characters[i];
             
             // Check if current character is Chinese punctuation
-            const isChinesePunctuation = /[，。：；？！、（）【】「」『』''""〔〕［］｛｝《》〈〉]/.test(char);
+            const isChinesePunctuation = /[，。：；？！、）】」』'"〕］｝》〉]/.test(char);
             
             // Special case: If we're about to add punctuation but the line would be too long,
             // check if we can add it to the previous line
@@ -1130,12 +1130,9 @@ const WeiboConverter: React.FC = () => {
       {/* New Text-to-Image Feature */}
       <div className="text-to-image-section">
         <h3>Convert Text to Images</h3>
-        <p className="feature-description">
-          Convert your text into readable images with page numbers
-        </p>
         
         <div className="text-image-controls">
-          <button 
+          <button
             className="generate-images-button"
             onClick={handleGenerateTextImages}
             disabled={!inputText.trim() || isGeneratingTextImages}
@@ -1143,6 +1140,8 @@ const WeiboConverter: React.FC = () => {
             {isGeneratingTextImages ? 'Generating...' : 'Generate Text Images'}
           </button>
         </div>
+        
+        <canvas ref={textCanvasRef} style={{ display: 'none' }} />
         
         {textImageUrls.length > 0 && (
           <div className="text-images-section">
@@ -1174,9 +1173,6 @@ const WeiboConverter: React.FC = () => {
             </div>
           </div>
         )}
-        
-        {/* Hidden canvas for text-to-image generation */}
-        <canvas ref={textCanvasRef} style={{ display: 'none' }} />
       </div>
     </div>
   );
