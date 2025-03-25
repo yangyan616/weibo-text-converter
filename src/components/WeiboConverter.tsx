@@ -271,8 +271,8 @@ const WeiboConverter: React.FC = () => {
 
     const startGeneratingCovers = (validatedFonts: string[]) => {
       // Set canvas dimensions
-      const width = 800;
-      const height = 1200;
+      const width = 900;  // Base width
+      const height = 1200; // Height is 4/3 of width
       canvas.width = width;
       canvas.height = height;
       
@@ -684,9 +684,9 @@ const WeiboConverter: React.FC = () => {
     const context = canvas.getContext('2d');
     if (!context) return;
     
-    // Set canvas dimensions (3:2 aspect ratio with height being larger)
-    const width = 800;
-    const height = 1200;  // Height is 1.5x width to make a 3:2 ratio
+    // Set canvas dimensions (4:3 aspect ratio with height being larger)
+    const width = 900;
+    const height = 1200;  // Height is 4/3 of width
     canvas.width = width;
     canvas.height = height;
     
