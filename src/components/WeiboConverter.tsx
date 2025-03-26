@@ -672,7 +672,9 @@ const WeiboConverter: React.FC = () => {
     
     // Use setTimeout to let the UI update before starting the intensive operation
     setTimeout(() => {
-      generateTextImages(inputText);
+      // Convert Weibo emojis to standard emojis before generating images
+      const textWithEmojis = convertWeiboEmojis(inputText);
+      generateTextImages(textWithEmojis);
     }, 100);
   };
 
