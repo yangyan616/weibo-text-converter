@@ -693,11 +693,11 @@ const WeiboConverter: React.FC = () => {
     canvas.height = height;
     
     // Constants for text formatting
-    const margin = 70; // increased page margin in pixels
-    const fontSize = 40; // increased font size for better readability
+    const margin = 120; // increased page margin in pixels
+    const fontSize = 44; // increased font size for better readability
     const lineHeight = fontSize * 1.4; // line spacing
-    const pageNumberSize = 20; // size of page number
-    const maxLinesPerPage = Math.floor((height - (margin * 2) - pageNumberSize) / lineHeight) + 1;
+    const pageNumberSize = 22; // size of page number
+    const maxLinesPerPage = Math.floor((height - (margin * 2)) / lineHeight) + 1;
     const maxWidth = width - (margin * 2);
     
     // Function to split text into pages
