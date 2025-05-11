@@ -32,6 +32,7 @@ const WeiboConverter: React.FC = () => {
   // States for text-to-image feature
   const [textImageUrls, setTextImageUrls] = useState<string[]>([]);
   const [isGeneratingTextImages, setIsGeneratingTextImages] = useState<boolean>(false);
+  const [isProcessingAllInOne, setIsProcessingAllInOne] = useState<boolean>(false);
   
   // Canvas refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -950,6 +951,364 @@ const WeiboConverter: React.FC = () => {
     });
   };
 
+  // All-in-one function that combines convert, copy, generate text images, and save
+  const handleAllInOne = async () => {
+    if (!inputText.trim()) return;
+    
+    setIsProcessingAllInOne(true);
+    
+    try {
+      // Step 1: Convert the text first
+      console.log("All-in-One: Starting text conversion");
+      
+      // Instead of calling handleConvert and waiting for state to update,
+      // we'll perform the conversion directly here to ensure we have the converted text
+      let convertedText = inputText;
+      
+      // Store the text before adding paragraph markers for image generation
+      let textForImages = '';
+      
+      // Apply conversions if the text is not empty
+      if (convertedText.trim()) {
+        // Convert Weibo emojis to standard emojis
+        convertedText = convertWeiboEmojis(convertedText);
+        
+        // Convert recky hashtags
+        convertedText = convertReckyHashtags(convertedText);
+        
+        // Always convert hashtags format (this will change #xxxx# to #xxxx in-place)
+        convertedText = convertWeiboHashtags(convertedText);
+        
+        // Store the text at this point before adding paragraph markers
+        textForImages = convertedText;
+        
+        // Add paragraph markers if enabled
+        if (addParagraphMarks) {
+          convertedText = addParagraphMarkers(convertedText, markerStyle);
+        }
+      }
+      
+      // Make sure we also update the UI state
+      setOutputText(convertedText);
+      
+      // Split text into chunks if enabled and there's text to split
+      let chunks: string[] = [];
+      if (splitText && convertedText.trim()) {
+        // Use at least 1 character limit if 0 is somehow set
+        const effectiveLimit = maxChunkSize > 0 ? maxChunkSize : 1;
+        chunks = splitTextIntoChunks(convertedText, effectiveLimit);
+        setOutputChunks(chunks);
+      } else {
+        setOutputChunks([]);
+      }
+      
+      // Step 2: Copy the converted text to clipboard
+      console.log("All-in-One: Copying to clipboard");
+      
+      // Now we're sure we have the converted text
+      const textToCopy = splitText && chunks.length > 0 
+        ? chunks.join('\n\n--- Next Part ---\n\n')
+        : convertedText;
+        
+      console.log("All-in-One: Text to copy:", textToCopy.substring(0, 50) + "...");
+      
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        setShowCopied(true);
+        setCopiedChunkIndex(null);
+        setTimeout(() => {
+          setShowCopied(false);
+          setCopiedChunkIndex(null);
+        }, 2000);
+        console.log("All-in-One: Text copied successfully");
+      } catch (err) {
+        console.error('Failed to copy text:', err);
+        alert('Could not copy text automatically. Please copy manually.');
+      }
+      
+      // Step 3: Generate text images using the text without paragraph markers
+      console.log("All-in-One: Generating text images");
+      if (textForImages.trim()) {
+        // Don't automatically set title from the first line
+        // Let the user set the title manually if they want
+        
+        // Direct implementation of text-to-image generation without polling
+        console.log("All-in-One: Directly generating images");
+        
+        // Use canvas to generate images
+        const canvas = textCanvasRef.current;
+        if (canvas) {
+          const context = canvas.getContext('2d');
+          if (context) {
+            // Set canvas dimensions
+            const width = 900;
+            const height = 1200;
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Constants for text formatting
+            const margin = 120;
+            const fontSize = 44;
+            const lineHeight = fontSize * 1.4;
+            const pageNumberSize = 22;
+            
+            // Use the original splitTextIntoPages function to break text into pages
+            // This is a direct copy from the generateTextImages function
+            const pages = (() => {
+              // First split text into lines that fit within page width
+              const lines: string[] = [];
+              const paragraphs = textForImages.split('\n');
+              const maxWidth = width - (margin * 2);
+              const maxLinesPerPage = Math.floor((height - (margin * 2)) / lineHeight) + 1;
+              
+              paragraphs.forEach(paragraph => {
+                // Skip empty paragraphs or handle them as line breaks
+                if (!paragraph.trim()) {
+                  lines.push('');
+                  return;
+                }
+                
+                // Handle word wrapping differently for English vs Chinese/Japanese/etc
+                const hasChinese = /[\u4e00-\u9fa5]/.test(paragraph);
+                const hasLatin = /[a-zA-Z0-9]/.test(paragraph);
+                const isMixedMode = hasChinese && hasLatin;
+                
+                if (isMixedMode) {
+                  // For mixed content, we need to handle both Latin words and Chinese characters
+                  // First segment text into chunks of consecutive Latin characters or non-Latin characters
+                  const segments: {text: string, isLatin: boolean}[] = [];
+                  let currentSegment = '';
+                  let currentIsLatin = /[a-zA-Z0-9]/.test(paragraph[0] || '');
+                  
+                  Array.from(paragraph).forEach(char => {
+                    const charIsLatin = /[a-zA-Z0-9]/.test(char);
+                    
+                    if (charIsLatin !== currentIsLatin) {
+                      // Change in character type, create a new segment
+                      segments.push({text: currentSegment, isLatin: currentIsLatin});
+                      currentSegment = char;
+                      currentIsLatin = charIsLatin;
+                    } else {
+                      // Same character type, append to current segment
+                      currentSegment += char;
+                    }
+                  });
+                  
+                  // Add the last segment
+                  if (currentSegment) {
+                    segments.push({text: currentSegment, isLatin: currentIsLatin});
+                  }
+                  
+                  // Now handle each segment with its appropriate wrapping rules
+                  let currentLine = '';
+                  
+                  for (let i = 0; i < segments.length; i++) {
+                    const segment = segments[i];
+                    
+                    if (segment.isLatin) {
+                      // Handle latin segment as a whole word - never add space between Chinese and English
+                      const testLine = currentLine + segment.text;
+                      context.font = `${fontSize}px Arial, sans-serif`;
+                      const testWidth = context.measureText(testLine).width;
+                      
+                      if (testWidth > maxWidth && currentLine) {
+                        lines.push(currentLine);
+                        currentLine = segment.text;
+                      } else {
+                        currentLine = testLine;
+                      }
+                    } else {
+                      // Handle Chinese segment character by character
+                      const characters = Array.from(segment.text);
+                      
+                      for (let j = 0; j < characters.length; j++) {
+                        const char = characters[j];
+                        
+                        // Check if current character is Chinese punctuation
+                        const isChinesePunctuation = /[，。：；？！、）】」』'"〕］｝》〉]/.test(char);
+                        
+                        // Special case: If we're about to add punctuation but the line would be too long,
+                        // check if we can add it to the previous line
+                        const testLine = currentLine + char;
+                        context.font = `${fontSize}px Arial, sans-serif`;
+                        const testWidth = context.measureText(testLine).width;
+                        
+                        if (testWidth > maxWidth && currentLine && isChinesePunctuation) {
+                          // Add the punctuation to the previous line regardless of width
+                          // (we'll sacrifice the exact width limit to maintain proper punctuation flow)
+                          lines.push(currentLine + char);
+                          currentLine = '';
+                          continue;
+                        } else if (testWidth > maxWidth && currentLine) {
+                          // Normal wrapping for non-punctuation
+                          lines.push(currentLine);
+                          currentLine = char;
+                        } else {
+                          // No wrapping needed, just append
+                          currentLine = testLine;
+                        }
+                      }
+                    }
+                  }
+                  
+                  if (currentLine) {
+                    lines.push(currentLine);
+                  }
+                } else if (hasLatin && !hasChinese) {
+                  // English/Latin text - split by words
+                  let currentLine = '';
+                  const words = paragraph.split(/\s+/);
+                  
+                  for (let i = 0; i < words.length; i++) {
+                    const word = words[i];
+                    const testLine = currentLine + (currentLine ? ' ' : '') + word;
+                    
+                    // Measure text width for wrapping
+                    context.font = `${fontSize}px Arial, sans-serif`;
+                    const testWidth = context.measureText(testLine).width;
+                    
+                    if (testWidth > maxWidth && currentLine) {
+                      lines.push(currentLine);
+                      currentLine = word;
+                    } else {
+                      currentLine = testLine;
+                    }
+                  }
+                  
+                  if (currentLine) {
+                    lines.push(currentLine);
+                  }
+                } else {
+                  // For non-Latin characters (like Chinese), one character might already be a word
+                  let currentLine = '';
+                  const characters = Array.from(paragraph); // Properly handle multi-byte characters
+                  
+                  for (let i = 0; i < characters.length; i++) {
+                    const char = characters[i];
+                    
+                    // Check if current character is Chinese punctuation
+                    const isChinesePunctuation = /[，。：；？！、）】」』'"〕］｝》〉]/.test(char);
+                    
+                    // Special case: If we're about to add punctuation but the line would be too long,
+                    // check if we can add it to the previous line
+                    const testLine = currentLine + char;
+                    context.font = `${fontSize}px Arial, sans-serif`;
+                    const testWidth = context.measureText(testLine).width;
+                    
+                    if (testWidth > maxWidth && currentLine && isChinesePunctuation) {
+                      // Add the punctuation to the previous line regardless of width
+                      // (we'll sacrifice the exact width limit to maintain proper punctuation flow)
+                      lines.push(currentLine + char);
+                      currentLine = '';
+                      continue;
+                    } else if (testWidth > maxWidth && currentLine) {
+                      // Normal wrapping for non-punctuation
+                      lines.push(currentLine);
+                      currentLine = char;
+                    } else {
+                      // No wrapping needed, just append
+                      currentLine = testLine;
+                    }
+                  }
+                  
+                  if (currentLine) {
+                    lines.push(currentLine);
+                  }
+                }
+              });
+              
+              // Group lines into pages
+              const pages: string[] = [];
+              let currentPage: string[] = [];
+              
+              lines.forEach(line => {
+                if (currentPage.length >= maxLinesPerPage) {
+                  pages.push(currentPage.join('\n'));
+                  currentPage = [line];
+                } else {
+                  currentPage.push(line);
+                }
+              });
+              
+              // Add the last page if it has content
+              if (currentPage.length > 0) {
+                pages.push(currentPage.join('\n'));
+              }
+              
+              return pages;
+            })();
+            
+            console.log(`All-in-One: Split text into ${pages.length} pages`);
+            
+            // Render each page and collect image URLs
+            const generatedUrls: string[] = [];
+            
+            pages.forEach((pageContent, index) => {
+              // Clear canvas
+              context.fillStyle = '#f8f8f8';
+              context.fillRect(0, 0, width, height);
+              
+              // Draw a subtle border
+              context.strokeStyle = '#e0e0e0';
+              context.lineWidth = 2;
+              context.strokeRect(margin/2, margin/2, width - margin, height - margin);
+              
+              // Set text properties
+              context.font = `${fontSize}px Arial, sans-serif`;
+              context.fillStyle = '#333333';
+              context.textBaseline = 'top';
+              
+              // Draw text lines
+              const lines = pageContent.split('\n');
+              lines.forEach((line, lineIndex) => {
+                const y = margin + (lineIndex * lineHeight);
+                context.fillText(line, margin, y);
+              });
+              
+              // Draw page number
+              context.font = `${pageNumberSize}px Arial, sans-serif`;
+              context.fillStyle = '#888888';
+              context.fillText(`${index + 1}`, 15, height - 30);
+              
+              // Convert canvas to image URL with better quality
+              const imageUrl = canvas.toDataURL('image/jpeg', 0.95);
+              generatedUrls.push(imageUrl);
+            });
+            
+            // Update state with generated images
+            setTextImageUrls(generatedUrls);
+            
+            // Step 4: Download all generated images
+            if (generatedUrls.length > 0) {
+              console.log(`All-in-One: Downloading ${generatedUrls.length} generated images`);
+              
+              // Manual download implementation to avoid race conditions
+              generatedUrls.forEach((url, index) => {
+                setTimeout(() => {
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `text-page-${index + 1}.jpg`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  console.log(`All-in-One: Downloaded image ${index + 1}`);
+                }, index * 300); // Stagger downloads
+              });
+            } else {
+              console.log("All-in-One: No images to download");
+            }
+          }
+        }
+      }
+      
+      console.log("All-in-One: All operations completed");
+    } catch (error) {
+      console.error("Error in All-in-One process:", error);
+    } finally {
+      setIsProcessingAllInOne(false);
+    }
+  };
+
   return (
     <div className="converter-container">
       <div className="book-cover-section">
@@ -1085,6 +1444,14 @@ const WeiboConverter: React.FC = () => {
         disabled={!inputText.trim()}
       >
         Convert
+      </button>
+      
+      <button 
+        className="convert-button all-in-one-button" 
+        onClick={handleAllInOne}
+        disabled={!inputText.trim() || isProcessingAllInOne}
+      >
+        {isProcessingAllInOne ? 'Processing...' : 'Convert, Copy & Generate Images'}
       </button>
       
       {outputText && !splitText && (

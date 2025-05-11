@@ -210,6 +210,25 @@ button {
   cursor: not-allowed;
 }
 
+/* Styles for the all-in-one button */
+.all-in-one-button {
+  background-color: #1d3557;
+  margin-left: 10px;
+}
+
+.all-in-one-button:hover {
+  background-color: #304969;
+}
+
+.all-in-one-button:disabled {
+  background-color: #cccccc;
+}
+
+/* Add a container for buttons to display them in a row */
+.convert-button + .all-in-one-button {
+  display: inline-block;
+}
+
 .copy-button {
   background-color: #a8dadc;
   color: #1d3557;
